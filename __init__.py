@@ -8,7 +8,7 @@ import requests
 from albert import *
 
 md_iid = "3.0"
-md_version = "3.4.0"
+md_version = "3.4.1"
 md_name = "Linkding"
 md_description = "Manage saved bookmarks via a linkding instance"
 md_license = "MIT"
@@ -122,14 +122,13 @@ class Plugin(PluginInstance, IndexQueryHandler):
         info("Indexed {} links [{:d} ms]".format(len(self._index_items), (int(perf_counter_ns() - start) // 1000000)))
         self._index_items = []
 
-
     def handleTriggerQuery(self, query):
         stripped = query.string.strip()
         if stripped:
             TriggerQueryHandler.handleTriggerQuery(self, query)
         else:
             query.add(
-                StandardItem( text=md_name, subtext="Search for an article saved in Linkding", iconUrls=self.iconUrls)
+                StandardItem(text=md_name, subtext="Search for an article saved in Linkding", iconUrls=self.iconUrls)
             )
         query.add(
             StandardItem(
@@ -139,7 +138,6 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 actions=[Action("refresh", "Refresh Linkding index", lambda: self.fetchIndexItems())],
             )
         )
-
 
     def _create_filters(self, item: dict):
         return ",".join([item["url"], item["title"], ",".join(tag for tag in item["tag_names"])])
@@ -166,7 +164,11 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
     def _get_links(self, url: str | None, headers: dict):
         while url:
-            response = requests.get(url, headers=headers, timeout=5)
+            try:
+                response = requests.get(url, headers=headers, timeout=5)
+            except requests.ConnectionError as e:
+                warning(f"Unable to connect to {self._instance_url}: {e}")
+                break
             if response.ok:
                 result = response.json()
                 url = result["next"]
