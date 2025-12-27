@@ -7,13 +7,14 @@ from urllib import parse
 import requests
 from albert import *
 
-md_iid = "3.0"
-md_version = "3.4.1"
+md_iid = "4.0"
+md_version = "3.5.0"
 md_name = "Linkding"
 md_description = "Manage saved bookmarks via a linkding instance"
 md_license = "MIT"
 md_url = "https://github.com/Pete-Hamlin/albert-python"
 md_authors = ["@Pete-Hamlin"]
+md_maintainers = ["@Pete-Hamlin"]
 md_lib_dependencies = ["requests"]
 
 
@@ -37,7 +38,7 @@ class LinkFetcherThread(Thread):
 
 
 class Plugin(PluginInstance, IndexQueryHandler):
-    iconUrls = [f"file:{Path(__file__).parent}/linkding.png"]
+    logo_icon = Path(__file__).parent / "linkding.png"
     limit = 250
     user_agent = "org.albert.linkding"
 
@@ -128,13 +129,17 @@ class Plugin(PluginInstance, IndexQueryHandler):
             TriggerQueryHandler.handleTriggerQuery(self, query)
         else:
             query.add(
-                StandardItem(text=md_name, subtext="Search for an article saved in Linkding", iconUrls=self.iconUrls)
+                StandardItem(
+                    text=md_name,
+                    subtext="Search for an article saved in Linkding",
+                    icon_factory=lambda: makeImageIcon(self.logo_icon),
+                )
             )
         query.add(
             StandardItem(
                 text="Refresh cache index",
                 subtext="Refresh indexed links",
-                iconUrls=["xdg:view-refresh"],
+                icon_factory=lambda: makeThemeIcon("view-refresh"),
                 actions=[Action("refresh", "Refresh Linkding index", lambda: self.fetchIndexItems())],
             )
         )
@@ -147,7 +152,7 @@ class Plugin(PluginInstance, IndexQueryHandler):
             id=str(self.id),
             text=link["title"] or link["url"],
             subtext="{}: {}".format(",".join(tag for tag in link["tag_names"]), link["url"]),
-            iconUrls=self.iconUrls,
+            icon_factory=lambda: makeImageIcon(self.logo_icon),
             actions=[
                 Action("open", "Open link", lambda u=link["url"]: openUrl(u)),
                 Action("copy", "Copy URL to clipboard", lambda u=link["url"]: setClipboardText(u)),
@@ -167,7 +172,8 @@ class Plugin(PluginInstance, IndexQueryHandler):
             try:
                 response = requests.get(url, headers=headers, timeout=5)
             except requests.ConnectionError as e:
-                warning(f"Unable to connect to {self._instance_url}: {e}")
+                warning(f"Unable to connect to {self._instance_url}")
+                debug(f"Error: {e}")
                 break
             if response.ok:
                 result = response.json()
