@@ -62,6 +62,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
     def defaultTrigger(self):
         return "ld "
 
+    def synopsis(self, _) -> str:
+        return "<link title|tag>"
+
     @property
     def instance_url(self):
         return self._instance_url
