@@ -7,8 +7,8 @@ from urllib import parse
 import requests
 from albert import *
 
-md_iid = "4.0"
-md_version = "3.5.0"
+md_iid = "5.0"
+md_version = "3.6.0"
 md_name = "Linkding"
 md_description = "Manage saved bookmarks via a linkding instance"
 md_license = "MIT"
@@ -38,7 +38,6 @@ class LinkFetcherThread(Thread):
 
 
 class Plugin(PluginInstance, IndexQueryHandler):
-    logo_icon = Path(__file__).parent / "linkding.png"
     limit = 250
     user_agent = "org.albert.linkding"
 
@@ -54,6 +53,10 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
         self._thread = LinkFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
         self._thread.start()
+
+    @staticmethod
+    def makeIcon():
+        return Icon.composed(Icon.image(Path(__file__).parent / "linkding.png"), Icon.grapheme("🔗"))
 
     def __del__(self):
         self._thread.stop()
@@ -135,14 +138,14 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 StandardItem(
                     text=md_name,
                     subtext="Search for an article saved in Linkding",
-                    icon_factory=lambda: makeImageIcon(self.logo_icon),
+                    icon_factory=Plugin.makeIcon,
                 )
             )
         query.add(
             StandardItem(
                 text="Refresh cache index",
                 subtext="Refresh indexed links",
-                icon_factory=lambda: makeThemeIcon("view-refresh"),
+                icon_factory=Plugin.makeIcon,
                 actions=[Action("refresh", "Refresh Linkding index", lambda: self.fetchIndexItems())],
             )
         )
@@ -155,7 +158,7 @@ class Plugin(PluginInstance, IndexQueryHandler):
             id=str(self.id),
             text=link["title"] or link["url"],
             subtext="{}: {}".format(",".join(tag for tag in link["tag_names"]), link["url"]),
-            icon_factory=lambda: makeImageIcon(self.logo_icon),
+            icon_factory=Plugin.makeIcon,
             actions=[
                 Action("open", "Open link", lambda u=link["url"]: openUrl(u)),
                 Action("copy", "Copy URL to clipboard", lambda u=link["url"]: setClipboardText(u)),
