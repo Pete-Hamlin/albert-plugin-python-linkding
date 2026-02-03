@@ -1,6 +1,10 @@
 
-<a name="3.5.0"></a>
-## [3.5.0] - 2025-12-27
+<a name="3.6.0"></a>
+## [3.6.0] - 2026-02-03
+### Bug Fixes
+- Update to python API 5.0
+- Better handling of connection error (less log noise)
+
 ### Features
 - Added synopsis
 - Update to albert API v4.0
@@ -8,12 +12,6 @@
 ### BREAKING CHANGE
 
 Compatible with albert v0.33.*
-
-
-<a name="3.4.1"></a>
-## [3.4.1] - 2025-10-03
-### Bug Fixes
-- Better handling of connection error (less log noise)
 
 
 <a name="3.4.0"></a>
@@ -51,9 +49,8 @@ Compatible with albert v0.33.*
 <a name="2.0.0"></a>
 ## 2.0.0 - 2024-03-20
 
-[Unreleased]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.5.0...HEAD
-[3.5.0]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.4.1...3.5.0
-[3.4.1]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.4.0...3.4.1
+[Unreleased]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.6.0...HEAD
+[3.6.0]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.4.0...3.6.0
 [3.4.0]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.3.0...3.4.0
 [3.3.0]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.2.0...3.3.0
 [3.2.0]: https://github.com/Pete-Hamlin/albert-linkding/compare/3.1.0...3.2.0
