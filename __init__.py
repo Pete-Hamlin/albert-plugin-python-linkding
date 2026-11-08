@@ -8,7 +8,7 @@ import requests
 from albert import *
 
 md_iid = "5.0"
-md_version = "3.6.0"
+md_version = "3.6.1"
 md_name = "Linkding"
 md_description = "Manage saved bookmarks via a linkding instance"
 md_license = "MIT"
@@ -47,16 +47,25 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
         self._index_items = []
 
-        self._instance_url = self.readConfig("instance_url", str) or "http://localhost:9090"
+        self._instance_url = (
+            self.readConfig("instance_url", str) or "http://localhost:9090"
+        )
         self._api_key = self.readConfig("api_key", str) or ""
         self._cache_length = self.readConfig("cache_length", int) or 15
 
-        self._thread = LinkFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
+        self._thread = LinkFetcherThread(
+            callback=self.fetchIndexItems, cache_length=self._cache_length
+        )
         self._thread.start()
 
     @staticmethod
     def makeIcon():
-        return Icon.composed(Icon.image(Path(__file__).parent / "linkding.png"), Icon.grapheme("🔗"))
+        return Icon.composed(
+            Icon.image(Path(__file__).parent / "linkding.png"), Icon.grapheme("🔗")
+        )
+
+    def makeSyncIcon():
+        return Icon.theme("view-refresh")
 
     def __del__(self):
         self._thread.stop()
@@ -100,7 +109,9 @@ class Plugin(PluginInstance, IndexQueryHandler):
         if self._thread.is_alive():
             self._thread.stop()
             self._thread.join()
-        self._thread = LinkFetcherThread(callback=self.fetchIndexItems, cache_length=self._cache_length)
+        self._thread = LinkFetcherThread(
+            callback=self.fetchIndexItems, cache_length=self._cache_length
+        )
         self._thread.start()
 
     def configWidget(self):
@@ -112,7 +123,11 @@ class Plugin(PluginInstance, IndexQueryHandler):
                 "label": "API key",
                 "widget_properties": {"echoMode": "Password"},
             },
-            {"type": "spinbox", "property": "cache_length", "label": "Cache length (minutes)"},
+            {
+                "type": "spinbox",
+                "property": "cache_length",
+                "label": "Cache length (minutes)",
+            },
         ]
 
     def updateIndexItems(self):
@@ -126,52 +141,81 @@ class Plugin(PluginInstance, IndexQueryHandler):
             item = self._gen_item(link)
             self._index_items.append(IndexItem(item=item, string=filter))
         self.updateIndexItems()
-        info("Indexed {} links [{:d} ms]".format(len(self._index_items), (int(perf_counter_ns() - start) // 1000000)))
+        info(
+            "Indexed {} links [{:d} ms]".format(
+                len(self._index_items), (int(perf_counter_ns() - start) // 1000000)
+            )
+        )
         self._index_items = []
 
-    def handleTriggerQuery(self, query):
-        stripped = query.string.strip()
-        if stripped:
-            TriggerQueryHandler.handleTriggerQuery(self, query)
+    def items(self, ctx):
+        if ctx.query.strip():
+            items = self.rankItems(ctx)
         else:
-            query.add(
+            items = [
                 StandardItem(
                     text=md_name,
                     subtext="Search for an article saved in Linkding",
                     icon_factory=Plugin.makeIcon,
                 )
-            )
-        query.add(
+            ]
+        items.append(
             StandardItem(
                 text="Refresh cache index",
                 subtext="Refresh indexed links",
-                icon_factory=Plugin.makeIcon,
-                actions=[Action("refresh", "Refresh Linkding index", lambda: self.fetchIndexItems())],
+                icon_factory=Plugin.makeSyncIcon,
+                actions=[
+                    Action(
+                        "refresh",
+                        "Refresh Linkding index",
+                        lambda: self.fetchIndexItems(),
+                    )
+                ],
             )
         )
+        yield items
 
     def _create_filters(self, item: dict):
-        return ",".join([item["url"], item["title"], ",".join(tag for tag in item["tag_names"])])
+        return ",".join(
+            [item["url"], item["title"], ",".join(tag for tag in item["tag_names"])]
+        )
 
     def _gen_item(self, link: dict):
         return StandardItem(
             id=str(self.id),
             text=link["title"] or link["url"],
-            subtext="{}: {}".format(",".join(tag for tag in link["tag_names"]), link["url"]),
+            subtext="{}: {}".format(
+                ",".join(tag for tag in link["tag_names"]), link["url"]
+            ),
             icon_factory=Plugin.makeIcon,
             actions=[
                 Action("open", "Open link", lambda u=link["url"]: openUrl(u)),
-                Action("copy", "Copy URL to clipboard", lambda u=link["url"]: setClipboardText(u)),
-                Action("archive", "Archive link", lambda u=link["id"]: self._archive_link(u)),
-                Action("delete", "Delete link", lambda u=link["id"]: self._archive_link(u)),
+                Action(
+                    "copy",
+                    "Copy URL to clipboard",
+                    lambda u=link["url"]: setClipboardText(u),
+                ),
+                Action(
+                    "archive",
+                    "Archive link",
+                    lambda u=link["id"]: self._archive_link(u),
+                ),
+                Action(
+                    "delete", "Delete link", lambda u=link["id"]: self._archive_link(u)
+                ),
             ],
         )
 
     def _fetch_results(self):
         params = {"limit": self.limit}
-        headers = {"User-Agent": self.user_agent, "Authorization": f"Token {self._api_key}"}
+        headers = {
+            "User-Agent": self.user_agent,
+            "Authorization": f"Token {self._api_key}",
+        }
         url = f"{self._instance_url}/api/bookmarks/?{parse.urlencode(params)}"
-        return (link for link_list in self._get_links(url, headers) for link in link_list)
+        return (
+            link for link_list in self._get_links(url, headers) for link in link_list
+        )
 
     def _get_links(self, url: str | None, headers: dict):
         while url:
@@ -191,7 +235,10 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
     def _delete_link(self, link_id: str):
         url = f"{self._instance_url}/api/bookmarks/{link_id}"
-        headers = {"User-Agent": self.user_agent, "Authorization": f"Token {self._api_key}"}
+        headers = {
+            "User-Agent": self.user_agent,
+            "Authorization": f"Token {self._api_key}",
+        }
         debug("About to DELETE {}".format(url))
         response = requests.delete(url, headers=headers)
         if response.ok:
@@ -201,7 +248,10 @@ class Plugin(PluginInstance, IndexQueryHandler):
 
     def _archive_link(self, link_id: str):
         url = f"{self._instance_url}/api/bookmarks/{link_id}/archive/"
-        headers = {"User-Agent": self.user_agent, "Authorization": f"Token {self._api_key}"}
+        headers = {
+            "User-Agent": self.user_agent,
+            "Authorization": f"Token {self._api_key}",
+        }
         debug("About to POST {}".format(url))
         response = requests.post(url, headers=headers)
         if response.ok:
